@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>釣魚控制器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
+        }
+
+        .bg-ocean-game {
+            background: radial-gradient(circle at 50% 10%, #1e3a8a 0%, #0f172a 60%, #020617 100%);
+        }
+
+        .controller-layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes shine-sweep {
+            0% {
+                transform: translateX(-150%) skewX(-20deg);
+            }
+
+            50%,
+            100% {
+                transform: translateX(250%) skewX(-20deg);
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .btn-pressed {
+            transform: scale(0.95) !important;
+            filter: brightness(1.1) !important;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.5), inset 0 -4px 4px rgba(0, 0, 0, 0.2) !important;
+            background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2)) !important;
+        }
+
+        .d-pad-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 12px;
+            touch-action: none;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 90%;
+            max-width: 320px;
+            aspect-ratio: 1/1;
+            margin: 0 auto;
+        }
+
+        .d-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            border-radius: 1.5rem;
+            /* Default (Portrait) */
+            font-size: 3.5rem;
+        }
+
+        .d-btn:active,
+        .d-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.92);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+        }
+
+        .center-knob {
+            background: rgba(30, 58, 138, 0.8);
+            border: 2px solid rgba(147, 197, 253, 0.3);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .action-btn-wrapper {
+            width: 100%;
+            max-width: 160px;
+            margin: 0 auto;
+            padding-bottom: 20px;
+            min-height: 140px;
+        }
+
+        #main-action-btn span,
+        #main-alert-btn span {
+            font-size: 2.5rem;
+            line-height: 1.2;
+        }
+
+        #action-text {
+            font-size: 1rem;
+            margin-top: 4px;
+        }
+
+        @media (orientation: landscape) and (max-width: 1024px) {
+            .controller-layout {
+                flex-direction: row;
+                padding: 1rem 2rem;
+                align-items: center;
+            }
+
+            .d-pad-container {
+                max-width: 220px;
+                width: auto;
+            }
+
+            .d-btn {
+                font-size: 2.5rem;
+                border-radius: 1rem;
+            }
+
+            .action-btn-wrapper {
+                max-width: 140px;
+                margin: 0;
+                padding-bottom: 0;
+            }
+
+            #main-action-btn span,
+            #main-alert-btn span {
+                font-size: 2rem;
+            }
+
+            #action-text {
+                font-size: 0.85rem !important;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .controller-layout {
+                flex-direction: row;
+                padding: 0 5rem;
+                justify-content: center;
+                gap: 10%;
+            }
+
+            .d-pad-container {
+                max-width: 280px;
+            }
+
+            .action-btn-wrapper {
+                max-width: 220px;
+            }
+
+            #main-action-btn span,
+            #main-alert-btn span {
+                font-size: 3rem;
+            }
+
+            #action-text {
+                font-size: 1.1rem;
+            }
+        }
+
+        #alert-container {
+            z-index: 10;
+        }
+
+        .game-action-btn-base {
+            position: relative;
+            background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+            border: 4px solid rgba(147, 197, 253, 0.5);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), inset 0 4px 4px rgba(255, 255, 255, 0.4), inset 0 -4px 4px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            touch-action: none;
+            transition: all 0.15s ease-out;
+            overflow: hidden;
+        }
+
+        .game-action-btn-base:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-action-btn-base.disabled {
+            background: linear-gradient(180deg, #475569 0%, #334155 100%);
+            border-color: #64748b;
+            opacity: 1;
+            filter: grayscale(1);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert-btn-style {
+            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            border: 4px solid rgba(248, 113, 113, 0.5);
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.6);
+            animation: pulse-red 1s infinite;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .alert-btn-style:active {
+            transform: scale(0.95);
+        }
+
+        .status-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            box-shadow: 0 0 5px #ef4444;
+            transition: all 0.3s ease;
+        }
+
+        .status-light.connected {
+            background-color: #22c55e;
+            box-shadow: 0 0 10px #22c55e, 0 0 20px #22c55e;
+        }
+    </style>
+</head>
+
+<body class="bg-ocean-game text-white h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
+    <div id="login-screen"
+        class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-6">
+        <div class="mb-8 text-center">
+            <div
+                class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-blue-600 drop-shadow-lg font-sans filter">
+                釣魚控制器</div>
+            <h1
+                class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-blue-600 drop-shadow-lg font-sans filter">
+                🐟Controller🐟
+            </h1>
+            <div class="h-1 w-64 bg-cyan-400 mx-auto mt-4 rounded-full shadow-[0_0_15px#22d3ee]"></div>
+        </div>
+        <p class="mb-8 text-cyan-200 text-lg drop-shadow-md">請輸入名字</p>
+        <input type="text" id="username" placeholder="你的名字"
+            class="w-full max-w-xs p-4 rounded-xl bg-black/40 border-2 border-cyan-900/50 text-xl text-center focus:outline-none focus:border-blue-500 mb-8 text-white placeholder-cyan-800 backdrop-blur-sm transition-colors focus:bg-black/50">
+        <button onclick="connect()"
+            class="group relative px-20 py-6 bg-gradient-to-b from-blue-500 to-blue-700 text-white font-black text-2xl tracking-[0.1em] rounded-full border-4 border-blue-400/50 shadow-[0_10px_20px_rgba(0,0,0,0.5),_inset_0_4px_4px_rgba(255,255,255,0.4),_inset_0_-4px_4px_rgba(0,0,0,0.2)] transform transition-all duration-150 ease-out hover:scale-105 hover:brightness-110 hover:shadow-[0_15px_30px_rgba(37,99,235,0.6),_inset_0_4px_4px_rgba(255,255,255,0.4)] active:scale-95 active:translate-y-1 active:shadow-[0_2px_10px_rgba(0,0,0,0.5),_inset_0_4px_8px_rgba(0,0,0,0.4)] outline-none overflow-hidden max-w-xs mx-auto">
+            <span className="relative z-10 drop-shadow-md">連線</span>
+            <div
+                className="absolute top-0 left-1/4 right-1/4 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-full opacity-50 pointer-events-none" />
+            <div
+                className="absolute inset-0 w-1/4 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine pointer-events-none" />
+        </button>
+        <p id="status-msg" class="mt-6 text-sm text-cyan-200/70 h-6 font-bold tracking-wider"></p>
+        <div
+            class="fixed top-6 right-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+            <div id="connect-light" class="status-light"></div>
+            <span id="connect-text" class="text-xs text-cyan-100 font-medium">未連線</span>
+        </div>
+    </div>
+    <div id="game-screen" class="hidden flex-1 flex-col relative h-full w-full">
+        <header
+            class="h-20 flex-shrink-0 flex items-center justify-between px-6 bg-blue-900/50 backdrop-blur-md border-b border-blue-500/30 shadow-[0_4px_20px_rgba(0,0,0,0.3)] z-20">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="text-2xl drop-shadow-md hidden sm:block">🎮</div>
+                <div class="min-w-0">
+                    <span class="text-cyan-300 text-xs font-bold tracking-widest uppercase block mb-0.5">玩家名字</span>
+                    <div id="display-name" class="font-black text-xl leading-none text-white drop-shadow-sm truncate">
+                        Guest</div>
+                </div>
+            </div>
+            <div id="status-badge"
+                class="px-5 py-2 rounded-full text-sm font-bold bg-yellow-600/90 text-yellow-100 animate-pulse shadow-lg border border-yellow-400/30 backdrop-blur-sm flex items-center gap-2 whitespace-nowrap">
+                <span class="w-2 h-2 rounded-full bg-white/50 animate-pulse"></span>
+                等待老師選取...
+            </div>
+            <div class="flex items-center gap-2 min-w-0">
+                <div id="game-connect-light" class="status-light"></div>
+            </div>
+        </header>
+
+        <div class="controller-layout z-10 flex-1 relative">
+            <div class="absolute inset-0 pointer-events-none opacity-20"
+                style="background: radial-gradient(circle at center, transparent 0%, #000 120%);"></div>
+
+            <div class="flex justify-center items-center flex-1 w-full relative z-10 min-h-0">
+                <div class="d-pad-container">
+                    <div></div>
+                    <button id="btn-up" class="d-btn rounded-2xl shadow-lg select-none group">
+                        <span class="group-hover:scale-110 transition-transform block">▲</span>
+                    </button>
+                    <div></div>
+                    <button id="btn-left" class="d-btn rounded-2xl shadow-lg select-none group">
+                        <span class="group-hover:scale-110 transition-transform block">◀</span>
+                    </button>
+                    <div class="flex items-center justify-center rounded-xl center-knob">
+                        <div class="w-8 h-8 bg-black/30 rounded-full shadow-inner"></div>
+                    </div>
+                    <button id="btn-right" class="d-btn rounded-2xl shadow-lg select-none group">
+                        <span class="group-hover:scale-110 transition-transform block">▶</span>
+                    </button>
+                    <div></div>
+                    <button id="btn-down" class="d-btn rounded-2xl shadow-lg select-none group">
+                        <span class="group-hover:scale-110 transition-transform block">▼</span>
+                    </button>
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="flex justify-center items-center flex-1 w-full relative z-20 min-h-0">
+                <div class="action-btn-wrapper relative">
+                    <div id="btn-normal"
+                        class="action-state-container hidden w-full h-full flex justify-center items-center">
+                        <button id="main-action-btn" disabled
+                            class="game-action-btn-base disabled w-full aspect-square rounded-full flex flex-col items-center justify-center select-none">
+                            <span class="mb-1 drop-shadow-md relative z-10">🐟</span>
+                            <span id="action-text"
+                                class="font-bold font-sans tracking-wider text-white drop-shadow-md relative z-10 select-none">等待中</span>
+                            <div
+                                className="absolute top-0 left-1/4 right-1/4 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-full opacity-50 pointer-events-none" />
+                            <div
+                                className="absolute inset-0 w-1/4 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine pointer-events-none" />
+                        </button>
+                    </div>
+                    <div id="alert-container"
+                        class="action-state-container w-full h-full flex justify-center items-center">
+                        <button id="main-alert-btn" disabled class="w-full aspect-square rounded-full flex flex-col items-center justify-center select-none relative overflow-hidden alert-btn-style
+                                           hover:brightness-110">
+                            <span class="mb-1 drop-shadow-md relative z-10">🚨</span>
+                            <span class="font-black text-white drop-shadow-md tracking-wider relative z-10">釣到了</span>
+                            <div className="absolute inset-0 bg-red-600/20 animate-ping pointer-events-none"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script>
+        const WS_URL = 'wss://scorefisher.onrender.com';
+        let ws;
+        let myName = '';
+        let hasControl = false;
+        let currentGameState = null;
+        let vibrateIntervalId = null;
+        function updateConnectionStatus(connected) {
+            const lights = [document.getElementById('connect-light'), document.getElementById('game-connect-light')];
+            const text = document.getElementById('connect-text');
+            lights.forEach(l => connected ? l.classList.add('connected') : l.classList.remove('connected'));
+            if (connected) {
+                if (text) {
+                    text.innerText = "連線中";
+                    text.className = "text-xs font-bold text-green-400 tracking-wider";
+                }
+            } else {
+                if (text) {
+                    text.innerText = "斷線";
+                    text.className = "text-xs font-medium text-gray-400";
+                }
+            }
+        }
+        function startBiteVibration() {
+            if (vibrateIntervalId) return;
+            vibrateIntervalId = setInterval(() => {
+                if (navigator.vibrate) {
+                    navigator.vibrate([150, 100, 150]);
+                }
+            }, 400);
+        }
+        function stopBiteVibration() {
+            if (vibrateIntervalId) {
+                clearInterval(vibrateIntervalId);
+                vibrateIntervalId = null;
+                navigator.vibrate(0);
+            }
+        }
+        function connect() {
+            const nameInput = document.getElementById('username');
+            myName = nameInput.value.trim();
+            const statusMsg = document.getElementById('status-msg');
+            if (!myName) {
+                statusMsg.innerText = "請輸入名字 !";
+                statusMsg.className = "mt-6 text-sm text-red-400 h-6 font-bold animate-bounce";
+                if (navigator.vibrate) navigator.vibrate(100);
+                return;
+            }
+            statusMsg.innerText = "連線中...";
+            statusMsg.className = "mt-6 text-sm text-blue-300 h-6 font-bold";
+
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => {
+                updateConnectionStatus(true);
+                if (navigator.vibrate) navigator.vibrate(200);
+                ws.send(JSON.stringify({ type: 'JOIN_STUDENT', name: myName }));
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('flex');
+                document.getElementById('display-name').innerText = myName;
+                setupInputs();
+                updateGameStateUI(null);
+            };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'CONTROL_GRANTED') {
+                    console.log("Control Granted");
+                    setControlState(true);
+                    sendMove('UP', false);
+                    sendMove('DOWN', false);
+                    sendMove('LEFT', false);
+                    sendMove('RIGHT', false);
+                } else if (data.type === 'CONTROL_REVOKED') {
+                    setControlState(false);
+                } else if (data.type === 'GAME_STATE_UPDATE') {
+                    updateGameStateUI(data.state, data.vibrate);
+                }
+            };
+            ws.onclose = () => {
+                updateConnectionStatus(false);
+                if (ws.readyState === WebSocket.CLOSED) {
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    alert("已斷線，請重新整理");
+                    location.reload();
+                }
+            };
+            ws.onerror = (err) => {
+                console.error(err);
+                updateConnectionStatus(false);
+                statusMsg.innerText = "連線失敗";
+            };
+        }
+        function setupInputs() {
+            const directions = {
+                'btn-up': 'UP',
+                'btn-down': 'DOWN',
+                'btn-left': 'LEFT',
+                'btn-right': 'RIGHT'
+            };
+            for (const [id, dir] of Object.entries(directions)) {
+                const btn = document.getElementById(id);
+                function handleStart(e) {
+                    e.preventDefault();
+                    if (navigator.vibrate) navigator.vibrate(25);
+                    sendMove(dir, true);
+                    btn.classList.add('active');
+                    e.target.setPointerCapture(e.pointerId);
+                }
+                function handleEnd(e) {
+                    e.preventDefault();
+                    sendMove(dir, false);
+                    btn.classList.remove('active');
+                    e.target.releasePointerCapture(e.pointerId);
+                }
+                btn.addEventListener('pointerdown', handleStart);
+                btn.addEventListener('pointerup', handleEnd);
+                btn.addEventListener('pointercancel', handleEnd);
+                btn.addEventListener('pointerleave', handleEnd);
+            }
+            ['main-action-btn', 'main-alert-btn'].forEach(btnId => {
+                const actionBtn = document.getElementById(btnId);
+                if (actionBtn) {
+                    function handleActionClick(e) {
+                        e.preventDefault();
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        actionBtn.classList.add('btn-pressed');
+                        sendInteract();
+                        setTimeout(() => actionBtn.classList.remove('btn-pressed'), 150);
+                    }
+                    actionBtn.addEventListener('pointerdown', handleActionClick);
+                }
+            });
+        }
+        function updateGameStateUI(state, shouldVibrate) {
+            if (state !== undefined) {
+                currentGameState = state;
+            }
+            if (hasControl) {
+                if (currentGameState === 'BITING') {
+                    startBiteVibration();
+                } else {
+                    stopBiteVibration();
+                }
+            } else {
+                stopBiteVibration();
+            }
+            const txt = document.getElementById('action-text');
+            const normalContainer = document.getElementById('btn-normal');
+            const alertContainer = document.getElementById('alert-container');
+            if (!hasControl) {
+                txt.innerText = "排隊中";
+                normalContainer.classList.remove('hidden');
+                normalContainer.style.display = 'flex';
+                alertContainer.classList.add('hidden');
+                alertContainer.style.display = 'none';
+                document.getElementById('main-action-btn').classList.add('disabled');
+                return;
+            }
+            const renderState = currentGameState || 'IDLE';
+            switch (renderState) {
+                case 'IDLE':
+                    txt.innerText = "甩竿";
+                    document.getElementById('main-action-btn').classList.remove('disabled');
+                    normalContainer.classList.remove('hidden');
+                    normalContainer.style.display = 'flex';
+                    alertContainer.classList.add('hidden');
+                    alertContainer.style.display = 'none';
+                    break;
+                case 'CASTING':
+                case 'WAITING':
+                    txt.innerText = "等魚上勾";
+                    document.getElementById('main-action-btn').classList.add('disabled');
+                    normalContainer.classList.remove('hidden');
+                    normalContainer.style.display = 'flex';
+                    alertContainer.classList.add('hidden');
+                    alertContainer.style.display = 'none';
+                    break;
+                case 'BITING':
+                    document.getElementById('main-action-btn').classList.remove('disabled');
+                    alertContainer.classList.remove('hidden');
+                    alertContainer.style.display = 'flex';
+                    normalContainer.classList.add('hidden');
+                    normalContainer.style.display = 'none';
+                    document.getElementById('main-alert-btn').disabled = false;
+                    break;
+                case 'REELING':
+                case 'REWARD':
+                    txt.innerText = "釣起";
+                    document.getElementById('main-action-btn').classList.add('disabled');
+                    normalContainer.classList.remove('hidden');
+                    normalContainer.style.display = 'flex';
+                    alertContainer.classList.add('hidden');
+                    alertContainer.style.display = 'none';
+                    break;
+                default:
+                    txt.innerText = "準備";
+                    normalContainer.classList.remove('hidden');
+                    normalContainer.style.display = 'flex';
+                    alertContainer.classList.add('hidden');
+                    alertContainer.style.display = 'none';
+            }
+        }
+        function setControlState(active) {
+            hasControl = active;
+            const badge = document.getElementById('status-badge');
+            if (active) {
+                badge.innerText = "輪到你了!";
+                badge.className = "px-5 py-2 rounded-full text-sm font-bold bg-green-600 text-white shadow-lg shadow-green-500/50 border border-green-400 backdrop-blur-sm flex items-center gap-2";
+                if (navigator.vibrate) navigator.vibrate(200);
+                updateGameStateUI(null, false);
+            } else {
+                badge.innerText = "排隊中";
+                badge.className = "px-5 py-2 rounded-full text-sm font-bold bg-yellow-600/90 text-yellow-100 animate-pulse shadow-lg border border-yellow-400/30 backdrop-blur-sm flex items-center gap-2";
+                updateGameStateUI(null, false);
+            }
+        }
+        function sendMove(dir, isPressed) {
+            if (!hasControl || !ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({
+                type: 'GAME_ACTION',
+                action: isPressed ? 'MOVE_START' : 'MOVE_END',
+                dir: dir
+            }));
+        }
+        function sendInteract() {
+            if (!hasControl || !ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({
+                type: 'GAME_ACTION',
+                action: 'INTERACT'
+            }));
+        }
+    </script>
+</body>
+
+</html>
