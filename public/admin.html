@@ -1887,21 +1887,24 @@ f 169/37/169 170/38/170 171/39/171
                     if (waterRef.current && raycasterRef.current && cameraRef.current) {
                         raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
                         const intersects = raycasterRef.current.intersectObject(waterRef.current);
+
                         let targetPoint;
-                        
+
                         if (intersects.length > 0) {
                             targetPoint = intersects[0].point;
                             if (targetPoint.z > 80) {
-                            targetPoint.z = 80;
+                                const dir = targetPoint.clone().sub(cameraRef.current.position);
+                                dir.y = 0;
+                                dir.normalize();
+                                targetPoint = cameraRef.current.position.clone().add(dir.multiplyScalar(GAME_CONFIG.maxCastDistance));
+                                targetPoint.y = 0;
                             }
-                        } 
-                        else {
-                            cameraRef.current.getWorldDirection(new THREE.Vector3());
-                            const forward = new THREE.Vector3();
-                            cameraRef.current.getWorldDirection(forward);
-                            forward.y = 0;
-                            forward.normalize().multiplyScalar(20);
-                            targetPoint = new THREE.Vector3(cameraRef.current.position.x + forward.x, 0, cameraRef.current.position.z + forward.z);
+                        } else {
+                            const dir = raycasterRef.current.ray.direction.clone();
+                            dir.y = 0;
+                            dir.normalize();
+                            targetPoint = cameraRef.current.position.clone().add(dir.multiplyScalar(GAME_CONFIG.maxCastDistance));
+                            targetPoint.y = 0;
                         }
                         const dist = Math.sqrt(targetPoint.x * targetPoint.x + targetPoint.z * targetPoint.z);
                         let target = targetPoint.clone();
@@ -2332,15 +2335,26 @@ f 169/37/169 170/38/170 171/39/171
                         if (waterRef.current) {
                             const intersects = raycasterRef.current.intersectObject(waterRef.current);
                             if (intersects.length > 0) {
-                            const targetPoint = intersects[0].point;
-                              if (targetPoint.z > 80) {
-                              targetPoint.z = 80;
+                                const targetPoint = intersects[0].point;
+                                if (targetPoint.z > 80) {
+                                    const dir = targetPoint.clone().sub(cameraRef.current.position);
+                                    dir.y = 0;
+                                    dir.normalize();
+                                    const farPoint = cameraRef.current.position.clone().add(dir.multiplyScalar(GAME_CONFIG.maxCastDistance));
+                                    farPoint.y = 0;
+                                    dummyLookTarget.current.lookAt(farPoint);
+                                } else {
+                                    dummyLookTarget.current.lookAt(targetPoint);
+                                }
+                                rodPivotRef.current.quaternion.slerp(dummyLookTarget.current.quaternion, 0.1);
+                            } else {
+                                const dir = raycasterRef.current.ray.direction.clone();
+                                dir.normalize();
+                                const farPoint = cameraRef.current.position.clone().add(dir.multiplyScalar(GAME_CONFIG.maxCastDistance));
+                                dummyLookTarget.current.lookAt(farPoint);
+                                rodPivotRef.current.quaternion.slerp(dummyLookTarget.current.quaternion, 0.1);
+                            }
                         }
-
-                         dummyLookTarget.current.lookAt(targetPoint);
-                         rodPivotRef.current.quaternion.slerp(dummyLookTarget.current.quaternion, 0.1);
-                          }
-                       }
                     }
                     const worldRodTip = new THREE.Vector3();
                     if (rodTipRef.current) rodTipRef.current.getWorldPosition(worldRodTip);
