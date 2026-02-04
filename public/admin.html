@@ -1888,9 +1888,14 @@ f 169/37/169 170/38/170 171/39/171
                         raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
                         const intersects = raycasterRef.current.intersectObject(waterRef.current);
                         let targetPoint;
+                        
                         if (intersects.length > 0) {
                             targetPoint = intersects[0].point;
-                        } else {
+                            if (targetPoint.z > 80) {
+                            targetPoint.z = 80;
+                            }
+                        } 
+                        else {
                             cameraRef.current.getWorldDirection(new THREE.Vector3());
                             const forward = new THREE.Vector3();
                             cameraRef.current.getWorldDirection(forward);
@@ -2327,11 +2332,15 @@ f 169/37/169 170/38/170 171/39/171
                         if (waterRef.current) {
                             const intersects = raycasterRef.current.intersectObject(waterRef.current);
                             if (intersects.length > 0) {
-                                const targetPoint = intersects[0].point;
-                                dummyLookTarget.current.lookAt(targetPoint);
-                                rodPivotRef.current.quaternion.slerp(dummyLookTarget.current.quaternion, 0.1);
-                            }
+                            const targetPoint = intersects[0].point;
+                              if (targetPoint.z > 80) {
+                              targetPoint.z = 80;
                         }
+
+                         dummyLookTarget.current.lookAt(targetPoint);
+                         rodPivotRef.current.quaternion.slerp(dummyLookTarget.current.quaternion, 0.1);
+                          }
+                       }
                     }
                     const worldRodTip = new THREE.Vector3();
                     if (rodTipRef.current) rodTipRef.current.getWorldPosition(worldRodTip);
