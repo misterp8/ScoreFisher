@@ -85,7 +85,7 @@
             position: absolute;
             background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9) 10%, rgba(255, 255, 255, 0.2) 50%, rgba(135, 206, 235, 0.1) 90%);
             box-shadow: inset 4px 4px 6px rgba(255, 255, 255, 0.8), inset -3px -3px 6px rgba(0, 0, 0, 0.2), 0 5px 10px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(2px) brightness(1.1);
+            filter: brightness(1.2);
             z-index: 40;
             pointer-events: none;
             border-radius: 50%;
@@ -1278,7 +1278,7 @@ f 169/37/169 170/38/170 171/39/171
 
         const ScreenDrops = () => {
             const drops = useMemo(() => {
-                return Array.from({ length: 60 }).map((_, i) => {
+                return Array.from({ length: 30 }).map((_, i) => {
                     const isStatic = Math.random() < 0.6;
                     return {
                         left: Math.random() * 100,
@@ -1307,7 +1307,6 @@ f 169/37/169 170/38/170 171/39/171
                             }}
                         />
                     ))}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/10 via-transparent to-cyan-500/10 mix-blend-overlay pointer-events-none animate-pulse" />
                 </div>
             );
         };
@@ -1342,7 +1341,7 @@ f 169/37/169 170/38/170 171/39/171
             }, [students]);
 
             return (
-                <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+                <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
                     <div className="bg-gray-900/90 w-full max-w-2xl rounded-2xl border-2 border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.3)] overflow-hidden flex flex-col max-h-[80vh]">
                         <div className="bg-gradient-to-r from-blue-900 to-blue-800 p-6 border-b border-blue-500/30 flex justify-between items-center">
                             <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-white drop-shadow-lg tracking-widest flex items-center gap-3">
@@ -1432,7 +1431,7 @@ f 169/37/169 170/38/170 171/39/171
             };
 
             return (
-                <div className="w-full h-full bg-gray-900/80 backdrop-blur-md border-l border-blue-500/40 flex flex-col text-white shadow-2xl transition-all duration-300">
+                <div className="w-full h-full bg-gray-900/80 border-l border-blue-500/40 flex flex-col text-white shadow-2xl transition-all duration-300">
 
 
                     <div className="mb-4 border-b border-gray-700 pb-3 pt-3 flex justify-between items-center px-4">
@@ -1563,7 +1562,7 @@ f 169/37/169 170/38/170 171/39/171
         const UIOverlay = ({ gameState, onReset, hasStarted, onStart, showRewardButton = false, showScreenSplashes }) => {
             if (!hasStarted) {
                 return (
-                    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md select-none transition-opacity duration-1000">
+                    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 select-none transition-opacity duration-1000">
                         <div className="mb-20 text-center animate-fade-in-up">
                             <h1 className="text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-blue-600 drop-shadow-[0_0_40px_rgba(6,182,212,0.6)] tracking-tighter filter">
                                 Score Fisher
@@ -2054,7 +2053,7 @@ f 169/37/169 170/38/170 171/39/171
             const createSplash = (position, count = 15, scale = 1.0, withRipple = true) => {
                 if (!sceneRef.current) return;
                 if (withRipple) createRipple(position);
-                const geo = new THREE.SphereGeometry(0.3 * scale, 8, 8);
+                const geo = new THREE.SphereGeometry(0.3 * scale, 4, 4);
                 const mat = new THREE.MeshBasicMaterial({ color: 0xccffff });
                 for (let i = 0; i < count; i++) {
                     const mesh = new THREE.Mesh(geo, mat);
@@ -2178,8 +2177,8 @@ f 169/37/169 170/38/170 171/39/171
                     camera.lookAt(CAMERA_CONFIG.lookAt.x, CAMERA_CONFIG.lookAt.y, CAMERA_CONFIG.lookAt.z);
                     camera.layers.enable(1);
                     cameraRef.current = camera;
-                    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                    renderer.setPixelRatio(window.devicePixelRatio);
+                    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     renderer.toneMapping = THREE.ACESFilmicToneMapping;
                     renderer.toneMappingExposure = 0.5;
@@ -2203,8 +2202,8 @@ f 169/37/169 170/38/170 171/39/171
                     const water = new Water(
                         waterGeometry,
                         {
-                            textureWidth: 512,
-                            textureHeight: 512,
+                            textureWidth: 128,
+                            textureHeight: 128,
                             waterNormals: new THREE.TextureLoader().load(WATER_NORMALS_URL, (texture) => {
                                 texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
                             }),
@@ -2645,7 +2644,7 @@ f 169/37/169 170/38/170 171/39/171
 
                     {showQR && (
                         <div
-                            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-300"
+                            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 transition-opacity duration-300"
                             onClick={() => setShowQR(false)}
                         >
                             <div
